@@ -1,0 +1,37 @@
+﻿<nav class="app-rail" aria-label="Điều hướng chính">
+        <a class="rail-brand" asp-controller="Chat" asp-action="Index"
+           title="SecureChat">SC</a>
+
+        <a class="rail-item active"
+           asp-controller="Chat" asp-action="Index" title="Tin nhắn">
+            <span>💬</span>
+            <small>Tin nhắn</small>
+        </a>
+
+        <a class="rail-item"
+           asp-controller="Friends"
+           asp-action="Index"
+           title="Bạn bè">
+            <span>👥</span>
+            <small>Bạn bè</small>
+        </a>
+
+        <a class="rail-item"
+           asp-controller="Chat"
+           asp-action="CreateGroup"
+           title="Tạo nhóm">
+            <span>▦</span>
+            <small>Nhóm</small>
+        </a>
+
+        <a class="rail-item"
+           asp-controller="Profile"
+           asp-action="Edit"
+           title="Hồ sơ và cài đặt">
+            <span>⚙️</span>
+            <small>Hồ sơ &amp; cài đặt</small>
+        </a>
+        <div class="logout">
+            <a href="/Account/Logout">🚪 Đăng xuất</a>
+        </div>
+    </nav>

@@ -1,0 +1,43 @@
+﻿@{
+    ViewData["Title"] = "Đăng nhập";
+}
+
+<div class="login-container">
+
+    <div class="login-box">
+
+        <h1>🔐 SecureChat</h1>
+
+        <p class="subtitle">
+            Đăng nhập vào hệ thống chat an toàn
+        </p>
+
+        <div class="form-group">
+            <label>Tên đăng nhập</label>
+
+            <input type="text"
+                   id="username"
+                   placeholder="Nhập tên đăng nhập..." />
+        </div>
+
+        <div class="form-group">
+            <label>Mật khẩu</label>
+
+            <input type="password"
+                   id="password"
+                   placeholder="Nhập mật khẩu..." />
+        </div>
+
+        <button class="login-button"
+                onclick="login()">
+            Đăng nhập
+        </button>
+
+        <p class="register-text">
+            Chưa có tài khoản?
+            <a href="/Account/Register">Đăng ký</a>
+        </p>
+
+    </div>
+
+</div>

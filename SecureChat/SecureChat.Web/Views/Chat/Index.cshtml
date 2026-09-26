@@ -1,0 +1,1797 @@
+﻿@{
+    ViewData["Title"] = "hihihi";
+    ViewData["IsChatLayout"] = true;
+    string currentUser = ViewBag.CurrentUser;
+    var userAvatars =
+    ViewBag.UserAvatars as Dictionary<string, string>
+    ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    var users = ViewBag.Users as List<string>
+                ?? new List<string>();
+
+    string? selectedUser = ViewBag.SelectedUser;
+
+    var groups = ViewBag.Groups as List<SecureChat.Web.Services.ChatGroup> ?? new();
+    var selectedGroup = ViewBag.SelectedGroup as SecureChat.Web.Services.ChatGroup;
+}
+<style>
+.user-identity {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.user-avatar,
+.chat-avatar {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    color: white;
+    background: linear-gradient(135deg, #8b5cf6, #4f46e5);
+    font-size: 14px;
+    font-weight: 700;
+}
+    .user-avatar-image {
+        display: inline-block;
+        flex: 0 0 auto;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+.chat-avatar {
+    width: 30px;
+    height: 30px;
+    margin-bottom: 2px;
+}
+
+    .conversation-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-top: 5px;
+        color: #6b7280;
+        font-size: 12px;
+    }
+
+    .last-message {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .last-time {
+        flex: 0 0 auto;
+        font-size: 11px;
+    }
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f2f4f7;
+    }
+
+    .chat-container {
+        width: 100%;
+        display: flex;
+        height: 80vh;
+        margin: 30px auto;
+        max-width: 1100px;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    /* DANH SÁCH USER */
+
+    .sidebar {
+        width: 280px;
+        border-right: 1px solid #ddd;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .sidebar-scroll {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+    }
+
+    .logout {
+        margin-top: auto;
+        padding-top: 12px;
+        flex-shrink: 0;
+    }
+
+    .sidebar h2 {
+        margin-top: 0;
+    }
+
+    .current-user {
+        background: #eef3ff;
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+    .user {
+        display: block;
+        padding: 12px;
+        margin-bottom: 8px;
+        background: #f5f5f5;
+        border-radius: 8px;
+        cursor: pointer;
+        text-decoration: none;
+        color: black;
+    }
+
+    .user:hover {
+        background: #e5e5e5;
+    }
+
+    .selected {
+        background: #dce8ff;
+    }
+
+    .online {
+        color: green;
+    }
+    .chat-image {
+    display: block;
+    max-width: 280px;
+    max-height: 280px;
+    border-radius: 8px;
+    }
+    /* KHU CHAT */
+
+    .chat-area {
+        min-width: 0;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .chat-header {
+        padding: 18px;
+        border-bottom: 1px solid #ddd;
+        font-size: 20px;
+        font-weight: bold;
+    }
+
+    .messages {
+        flex: 1;
+        min-height: 0;
+        padding: 20px;
+        overflow-y: auto;
+    }
+
+    /* CÁC HÌNH NỀN (theme) CHO KHUNG CHAT — chọn 1 trong các class này */
+    .messages.bg-default { background: #fafafa; }
+    .messages.bg-blue   { background: linear-gradient(135deg, #e0f2ff, #c6e2ff); }
+    .messages.bg-pink   { background: linear-gradient(135deg, #ffe0ec, #ffd1e3); }
+    .messages.bg-green  { background: linear-gradient(135deg, #e3f9e5, #c8f0cc); }
+    .messages.bg-sunset { background: linear-gradient(135deg, #ffe8cc, #ffc2a1); }
+    .messages.bg-dots {
+        background-color: #fdfdfd;
+        background-image: radial-gradient(#d8d8d8 1px, transparent 1px);
+        background-size: 16px 16px;
+    }
+    .messages.bg-dark { background: linear-gradient(135deg, #2b2b3d, #1e1e2e); }
+    .messages.bg-dark .message.other .message-bubble {
+        background: #3a3a4d;
+        color: #f0f0f0;
+    }
+    .messages.bg-dark .message-sender { color: #cfcfe0; }
+    .messages.bg-dark .welcome { color: #cfcfe0; }
+
+    /* NÚT VÀ BẢNG CHỌN HÌNH NỀN */
+    .bg-picker-wrap { position: relative; float: right; }
+    .bg-picker-btn {
+        cursor: pointer;
+        border: none;
+        background: #eef3ff;
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: 14px;
+    }
+    .bg-picker-btn:hover { background: #dbe6ff; }
+    .bg-picker-panel {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: 38px;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        z-index: 50;
+        gap: 8px;
+        width: 180px;
+        flex-wrap: wrap;
+    }
+    .bg-picker-panel.open { display: flex; }
+    .bg-swatch {
+        width: 36px;
+        height: 36px;
+        border-radius: 6px;
+        cursor: pointer;
+        border: 2px solid transparent;
+    }
+    .bg-swatch.active { border-color: #1677ff; }
+
+    .welcome {
+        text-align: center;
+        margin-top: 150px;
+        color: #777;
+    }
+
+    .message-input {
+        display: flex;
+        padding: 15px;
+        border-top: 1px solid #ddd;
+        gap: 10px;
+    }
+
+    .message-input input {
+        flex: 1;
+        padding: 12px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        font-size: 15px;
+    }
+
+    .message-input button {
+        padding: 12px 20px;
+        border: none;
+        border-radius: 8px;
+        background: #1677ff;
+        color: white;
+        cursor: pointer;
+    }
+
+    .logout {
+        margin-top: 25px;
+    }
+
+    .logout a {
+        color: red;
+        text-decoration: none;
+    }
+
+    .message {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.message.mine {
+    justify-content: flex-end;
+}
+
+.message.other {
+    justify-content: flex-start;
+}
+
+.message-bubble {
+    max-width: min(72%, 560px);
+    padding: 10px 14px;
+    border-radius: 18px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+    box-shadow: 0 2px 7px rgba(0, 0, 0, 0.08);
+    animation: bubble-in 0.18s ease-out;
+}
+
+.message.mine .message-bubble {
+    color: white;
+    background: linear-gradient(135deg, #2584ff, #1765d1);
+    border-bottom-right-radius: 5px;
+}
+
+.message.other .message-bubble {
+    color: #202938;
+    background: white;
+    border: 1px solid #e8edf3;
+    border-bottom-left-radius: 5px;
+}
+
+.message-sender {
+    margin-bottom: 4px;
+    color: #52647a;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.message-time {
+    margin-top: 5px;
+    text-align: right;
+    font-size: 11px;
+    opacity: 0.7;
+}
+
+
+
+    .user-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12px;
+        margin-left: 6px;
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+        .status-dot.online {
+            background: #22c55e;
+        }
+
+        .status-dot.offline {
+            background: #999;
+        }
+
+    .status-text {
+        color: #777;
+    }
+
+        .status-text.online {
+            color: #22c55e;
+        }
+
+    .unread-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        margin-left: 6px;
+        border-radius: 10px;
+        background: #ff3b30;
+        color: white;
+        font-size: 11px;
+        font-weight: bold;
+    }
+
+    .user-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .stats-panel {
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid #ddd;
+    }
+
+        .stats-panel h3 {
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+    .stats-log {
+        max-height: 220px;
+        overflow-y: auto;
+        font-size: 12px;
+        color: #444;
+    }
+
+    .stats-entry {
+        background: #f5f5f5;
+        border-radius: 6px;
+        padding: 8px;
+        margin-bottom: 6px;
+        line-height: 1.5;
+    }
+
+        .stats-entry .ok {
+            color: green;
+            font-weight: bold;
+        }
+
+        .stats-entry .bad {
+            color: red;
+            font-weight: bold;
+    }
+    </style>
+
+
+<div class="chat-container @(!string.IsNullOrWhiteSpace(selectedUser) || selectedGroup != null ? "chat-open" : "")">
+    <button type="button"
+            id="mobileSidebarToggle"
+            class="mobile-sidebar-toggle">
+        ☰ Danh sách chat
+    </button>
+    <!-- SIDEBAR -->
+    @await Html.PartialAsync("_AppRail")
+    <div class="sidebar">
+        <div class="sidebar-top">
+            <h2>Trò chuyện</h2>
+            <input id="chatSearch"
+                   type="search"
+                   placeholder="Tìm cuộc trò chuyện..."
+                   autocomplete="off" />
+        </div>
+        <div class="chat-filter-tabs">
+            <button type="button" class="active" data-chat-filter="all">Tất cả</button>
+            <button type="button" data-chat-filter="user">Cá nhân</button>
+            <button type="button" data-chat-filter="group">Nhóm</button>
+        </div>
+        <div class="sidebar-scroll">
+        <h2>💬 hihihi</h2>
+              <h3 id="group-list">Nhóm chat</h3>
+
+        @if (groups.Count == 0)
+        {
+            <p class="empty">Chưa tham gia nhóm nào.</p>
+        }
+        else
+        {
+            foreach (var g in groups)
+            {
+                string cssClass = (selectedGroup != null && g.Id == selectedGroup.Id) ? "user selected" : "user";
+                    <a class="@cssClass"
+                       href="/Chat/Index?group=@g.Id"
+                       data-group-id="@g.Id"
+                       data-chat-item
+                       data-chat-name="@g.Name"
+                       data-chat-type="group">
+
+                        <div class="user-row">
+                            <span class="user-identity">
+                                <span class="chat-avatar">👥</span>
+                                <span>@g.Name</span>
+                            </span>
+                            <time class="last-time"></time>
+                        </div>
+
+                        <div class="conversation-meta">
+                            <span class="last-message">Chưa có tin nhắn.</span>
+                        </div>
+                    </a>
+            }
+        }
+            <h3 id="friend-list">Bạn bè chat</h3>
+
+        @if (users.Count == 0)
+{
+    <p class="empty">
+        Chưa có người dùng khác.
+    </p>
+}
+        else
+        {
+            foreach (var user in users)
+            {
+                    <a class="user @(user == selectedUser ? "selected" : "")"
+                       href="/Chat/Index?user=@Uri.EscapeDataString(user)"
+                       data-username="@user"
+                       data-chat-item
+                       data-chat-name="@user"
+                       data-chat-type="user">
+
+                    <div class="user-row">
+
+                        <span class="user-identity">
+                                @{
+                                    var avatarUrl = userAvatars.TryGetValue(user, out var savedAvatar)
+                                        ? savedAvatar
+                                        : "";
+                                }
+
+                                @if (!string.IsNullOrWhiteSpace(avatarUrl))
+                                {
+                                    <img class="user-avatar-image"
+                                         src="@avatarUrl"
+                                         alt="Ảnh đại diện của @user" />
+                                }
+                                else
+                                {
+                                    <span class="user-avatar">
+                                        @user.Substring(0, 1).ToUpperInvariant()
+                                    </span>
+                                }
+    <span>@user</span>
+</span>
+
+                        <span class="unread-badge"
+                              id="unread-@user"
+                              style="display:none;">
+                            0
+                        </span>
+
+                    </div>
+                        <div class="conversation-meta">
+                            <span class="last-message">Chưa có tin nhắn.</span>
+                            <time class="last-time"></time>
+                        </div>
+                    <span class="user-status">
+
+                        <span class="status-dot offline"></span>
+
+                        <span class="status-text">
+                            Offline
+                        </span>
+
+                    </span>
+
+                </a>
+            }
+        }
+
+            <div class="stats-panel">
+                <h3>📊 Thống kê mã hóa</h3>
+                <div id="statsLog" class="stats-log">
+                    <p class="empty">Chưa có số liệu.</p>
+                </div>
+            </div>
+        </div> <!-- đóng sidebar-scroll -->
+
+        
+    </div> <!-- đóng sidebar -->
+    <!-- KHU VỰC CHAT -->
+    <div class="chat-area">
+
+        @if (string.IsNullOrWhiteSpace(selectedUser) && selectedGroup == null)
+        {
+            <div class="welcome">
+
+                <h2>💬 hihihi</h2>
+
+                <p>
+                    Chọn một người dùng để bắt đầu trò chuyện.
+                </p>
+
+            </div>
+        }
+        else
+        {
+            <!-- HEADER -->
+
+                        <div class="chat-header">
+                @if (selectedGroup != null)
+                {
+                    <text>👥 Nhóm: <strong>@selectedGroup.Name</strong></text>
+                }
+                else
+                {
+                    <text>
+                        🟢 Chat với
+                        <a href="/Profile/Details?username=@Uri.EscapeDataString(selectedUser!)">
+                            <strong>@selectedUser</strong>
+                        </a>
+                    </text>
+                }
+
+                <div class="bg-picker-wrap">
+                    <button type="button"
+                            class="bg-picker-btn gallery-open-btn"
+                            id="openImageGallery">
+                        📷 Ảnh đã gửi
+                    </button>
+                    <button type="button" class="bg-picker-btn" id="bgPickerBtn">🎨 Hình nền</button>
+                    <div class="bg-picker-panel" id="bgPickerPanel">
+                        <div class="bg-swatch" data-bg="default" style="background:#fafafa;"></div>
+                        <div class="bg-swatch" data-bg="blue"   style="background:linear-gradient(135deg,#e0f2ff,#c6e2ff);"></div>
+                        <div class="bg-swatch" data-bg="pink"   style="background:linear-gradient(135deg,#ffe0ec,#ffd1e3);"></div>
+                        <div class="bg-swatch" data-bg="green"  style="background:linear-gradient(135deg,#e3f9e5,#c8f0cc);"></div>
+                        <div class="bg-swatch" data-bg="sunset" style="background:linear-gradient(135deg,#ffe8cc,#ffc2a1);"></div>
+                        <div class="bg-swatch" data-bg="dots"   style="background:#fdfdfd; background-image:radial-gradient(#d8d8d8 1px,transparent 1px); background-size:8px 8px;"></div>
+                        <div class="bg-swatch" data-bg="dark"   style="background:linear-gradient(135deg,#2b2b3d,#1e1e2e);"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TIN NHẮN -->
+            <div id="typingIndicator"
+                 style="display:none; padding:5px 20px; color:#777; font-size:13px;">
+            </div>
+
+            <div class="messages" id="messages">
+
+
+                @{
+                    var chatMessages =
+                        ViewBag.Messages as List<SecureChat.Core.Services.ChatMessage>
+                        ?? new List<SecureChat .Core.Services.ChatMessage>();
+                }
+
+                @if (chatMessages.Count == 0)
+                {
+                    <div class="welcome">
+                        <h3>Cuộc trò chuyện 1–1</h3>
+
+                        <p>
+                            Chưa có tin nhắn nào.
+                        </p>
+
+                        <p>
+                            Bạn đang trò chuyện với
+                            <strong>@selectedUser</strong>.
+                        </p>
+                    </div>
+                }
+                else
+                {
+                    foreach (var msg in chatMessages)
+                    {
+                        var isMe = msg.Sender.Equals(
+                            currentUser,
+                            StringComparison.OrdinalIgnoreCase
+                        );
+
+                        <div class="message @(isMe ? "mine" : "other")">
+                            @if (!isMe)
+                                {
+                                    <div class="chat-avatar">
+                                        @(string.IsNullOrWhiteSpace(msg.Sender)
+                                            ? "?"
+                                            : msg.Sender.Substring(0, 1).ToUpperInvariant())
+                                    </div>
+                                }
+                            <div class="message-bubble">
+
+                                @if (!isMe)
+                                {
+                                    <div class="message-sender">
+                                        @msg.Sender
+                                    </div>
+                                }
+
+                                <div>
+                                    @msg.Content
+                                </div>
+
+                                <div class="message-time">
+                                    @msg.SentAt.ToString("HH:mm")
+                                </div>
+
+                            </div>
+
+                        </div>
+                    }
+                }
+
+            </div>
+
+            <!-- Ô NHẬP -->
+
+            <div class="message-input">
+
+                <input id="messageInput"
+                       type="text"
+                       placeholder="Nhập tin nhắn..." />
+                       <input id="imageInput"
+                           type="file"
+                           accept="image/png,image/jpeg,image/webp"
+                           aria-label="Chọn ảnh" />
+                       <button type="button" id="emojiButton">😊</button>
+                <button id="sendButton">
+                    Gửi
+                </button>
+
+            </div>
+        }
+
+    </div>
+
+</div>
+<div id="imageLightbox" class="image-lightbox" aria-hidden="true">
+    <button id="closeImageLightbox"
+            type="button"
+            class="image-lightbox-close"
+            aria-label="Đóng ảnh">
+        ×
+    </button>
+
+    <img id="lightboxImage" alt="Ảnh xem lớn" />
+</div>
+<div id="imageGalleryModal"
+     class="image-gallery-overlay"
+     aria-hidden="true">
+
+    <div class="image-gallery-dialog" role="dialog" aria-modal="true">
+        <div class="image-gallery-header">
+            <h3>Ảnh đã gửi</h3>
+            <button id="closeImageGallery"
+                    type="button"
+                    aria-label="Đóng album">
+                ×
+            </button>
+        </div>
+
+        <div id="imageGalleryGrid" class="image-gallery-grid"></div>
+
+        <p id="imageGalleryEmpty" class="image-gallery-empty" hidden>
+            Chưa có ảnh trong cuộc trò chuyện này.
+        </p>
+    </div>
+</div>
+<div id="chatToast" class="chat-toast" role="status" aria-live="polite"></div>
+<script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js">
+    </script>
+
+<script>
+
+        const selectedUser = "@selectedUser";
+    const selectedGroup = "@(selectedGroup?.Id ?? "")";
+    const currentUser = "@currentUser";
+
+    const messages =
+        document.getElementById("messages");
+
+        const messageInput = document.getElementById("messageInput");
+    const emojiButton = document.getElementById("emojiButton");
+    function renderMessageContent(container, rawMessage) {
+    let data;
+
+    try {
+        data = JSON.parse(rawMessage);
+    } catch {
+        container.textContent = rawMessage;
+        return;
+    }
+
+    const allowedTypes = ["image/png", "image/jpeg", "image/webp"];
+
+    if (
+        data.type !== "image" ||
+        !allowedTypes.includes(data.mimeType) ||
+        typeof data.data !== "string" ||
+        !data.data.startsWith("data:" + data.mimeType + ";base64,")
+    ) {
+        container.textContent = rawMessage;
+        return;
+    }
+
+    const image = document.createElement("img");
+    image.src = data.data;
+    image.alt = "Ảnh đã gửi";
+    image.className = "chat-image";
+    container.appendChild(image);
+}
+    const imageLightbox = document.getElementById("imageLightbox");
+    const lightboxImage = document.getElementById("lightboxImage");
+    const closeImageButton = document.getElementById("closeImageLightbox");
+
+    function closeImageLightbox() {
+        imageLightbox.classList.remove("open");
+        imageLightbox.setAttribute("aria-hidden", "true");
+        lightboxImage.src = "";
+    }
+        const openGalleryButton =
+        document.getElementById("openImageGallery");
+
+    const galleryModal =
+        document.getElementById("imageGalleryModal");
+
+    const galleryGrid =
+        document.getElementById("imageGalleryGrid");
+
+    const galleryEmpty =
+        document.getElementById("imageGalleryEmpty");
+
+    const closeGalleryButton =
+        document.getElementById("closeImageGallery");
+
+    function openImageGallery() {
+        galleryGrid.replaceChildren();
+
+        // #messages chỉ chứa lịch sử của cuộc trò chuyện đang mở
+        const images = [
+            ...document.querySelectorAll("#messages img.chat-image")
+        ].reverse();
+
+        galleryEmpty.hidden = images.length > 0;
+
+        images.forEach(image => {
+            const item = document.createElement("button");
+            item.type = "button";
+            item.className = "image-gallery-item";
+
+            const thumbnail = document.createElement("img");
+            thumbnail.src = image.src;
+            thumbnail.alt = "Ảnh đã gửi";
+
+            item.appendChild(thumbnail);
+
+            item.addEventListener("click", () => {
+                galleryModal.classList.remove("open");
+                galleryModal.setAttribute("aria-hidden", "true");
+
+                lightboxImage.src = image.src;
+                imageLightbox.classList.add("open");
+                imageLightbox.setAttribute("aria-hidden", "false");
+            });
+
+            galleryGrid.appendChild(item);
+        });
+
+        galleryModal.classList.add("open");
+        galleryModal.setAttribute("aria-hidden", "false");
+    }
+
+    if (openGalleryButton) {
+        openGalleryButton.addEventListener("click", openImageGallery);
+    }
+
+    if (closeGalleryButton) {
+        closeGalleryButton.addEventListener("click", () => {
+            galleryModal.classList.remove("open");
+            galleryModal.setAttribute("aria-hidden", "true");
+        });
+    }
+
+    if (galleryModal) {
+        galleryModal.addEventListener("click", event => {
+            if (event.target === galleryModal) {
+                galleryModal.classList.remove("open");
+                galleryModal.setAttribute("aria-hidden", "true");
+            }
+        });
+    }
+
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && galleryModal?.classList.contains("open")) {
+            galleryModal.classList.remove("open");
+            galleryModal.setAttribute("aria-hidden", "true");
+        }
+    });
+    document.addEventListener("click", function (event) {
+        const clickedImage = event.target.closest(".chat-image");
+
+        if (clickedImage) {
+            lightboxImage.src = clickedImage.src;
+            imageLightbox.classList.add("open");
+            imageLightbox.setAttribute("aria-hidden", "false");
+        }
+    });
+
+    imageLightbox.addEventListener("click", function (event) {
+        if (event.target === imageLightbox) {
+            closeImageLightbox();
+        }
+    });
+
+    closeImageButton.addEventListener("click", closeImageLightbox);
+
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && imageLightbox.classList.contains("open")) {
+            closeImageLightbox();
+        }
+    });
+    if (emojiButton && messageInput) {
+        emojiButton.addEventListener("click", () => {
+            const start = messageInput.selectionStart ?? messageInput.value.length;
+            const end = messageInput.selectionEnd ?? start;
+            messageInput.setRangeText("😊", start, end, "end");
+            messageInput.focus();
+        });
+    }
+
+    const sendButton =
+        document.getElementById("sendButton");
+            const chatToast = document.getElementById("chatToast");
+    let chatToastTimer;
+
+    function showChatToast(text, isError = false) {
+        if (!chatToast) return;
+
+        chatToast.textContent = text;
+        chatToast.classList.toggle("error", isError);
+        chatToast.classList.add("show");
+
+        clearTimeout(chatToastTimer);
+
+        chatToastTimer = setTimeout(() => {
+            chatToast.classList.remove("show");
+        }, 2500);
+    }
+            // =========================
+    // ĐỔI HÌNH NỀN KHUNG CHAT
+    // =========================
+    (function initBackgroundPicker() {
+        if (!messages) return; // chưa chọn cuộc trò chuyện nào thì không có #messages
+
+        const conversationId = selectedGroup
+            ? "group:" + selectedGroup
+            : "user:" + selectedUser;
+        const storageKey = "chatBg:" + currentUser + ":" + conversationId;
+
+        const btn = document.getElementById("bgPickerBtn");
+        const panel = document.getElementById("bgPickerPanel");
+        const swatches = document.querySelectorAll(".bg-swatch");
+
+        function applyBg(name) {
+            messages.className = "messages bg-" + name;
+            swatches.forEach(s => s.classList.toggle("active", s.dataset.bg === name));
+        }
+
+        // Áp dụng lựa chọn đã lưu (mặc định "default" nếu chưa chọn lần nào)
+        applyBg(localStorage.getItem(storageKey) || "default");
+
+        if (btn) {
+            btn.addEventListener("click", () => panel.classList.toggle("open"));
+        }
+
+        swatches.forEach(swatch => {
+            swatch.addEventListener("click", () => {
+                const name = swatch.dataset.bg;
+                localStorage.setItem(storageKey, name);
+                applyBg(name);
+                panel.classList.remove("open");
+            });
+        });
+
+        // Bấm ra ngoài thì đóng bảng chọn
+        document.addEventListener("click", (e) => {
+            if (panel && !panel.contains(e.target) && e.target !== btn) {
+                panel.classList.remove("open");
+            }
+        });
+    })();
+
+    // =========================
+    // SIGNALR
+    // =========================
+
+    const connection =
+        new signalR.HubConnectionBuilder()
+            .withUrl("/chatHub")
+            .withAutomaticReconnect()
+            .build();
+                function updateConversationSummary(kind, id, content, sentAt) {
+        const selector = kind === "group"
+            ? ".user[data-group-id]"
+            : ".user[data-username]";
+
+        const item = [...document.querySelectorAll(selector)].find(element => {
+            return kind === "group"
+                ? element.dataset.groupId === id
+                : element.dataset.username?.toLowerCase() === id.toLowerCase();
+        });
+
+        if (!item) return;
+
+        const preview = item.querySelector(".last-message");
+        const time = item.querySelector(".last-time");
+
+        if (preview) {
+            let text = content || "";
+
+            if (text.startsWith("data:image/")) {
+                text = "📷 Hình ảnh";
+            } else if (text.length > 36) {
+                text = text.substring(0, 36) + "…";
+            }
+
+            preview.textContent = text;
+        }
+
+        if (time && sentAt) {
+            const date = new Date(sentAt);
+
+            if (!Number.isNaN(date.getTime())) {
+                time.textContent = date.toLocaleTimeString("vi-VN", {
+                    hour: "2-digit",
+                    minute: "2-digit"
+                });
+            }
+        }
+    }
+
+    connection.on(
+        "ConversationSummary",
+        (kind, id, content, sentAt) => {
+            updateConversationSummary(kind, id, content, sentAt);
+        }
+    );
+
+    // =========================
+    // ONLINE / OFFLINE
+    // =========================
+
+    function setUserOnline(
+        username,
+        isOnline
+    ) {
+
+        const userElements =
+            document.querySelectorAll(
+                ".user[data-username]"
+            );
+
+        userElements.forEach(
+            userElement => {
+
+                const name =
+                    userElement.getAttribute(
+                        "data-username"
+                    );
+
+                if (!name)
+                    return;
+
+                if (
+                    name.toLowerCase() !==
+                    username.toLowerCase()
+                ) {
+                    return;
+                }
+
+                const dot =
+                    userElement.querySelector(
+                        ".status-dot"
+                    );
+
+                const text =
+                    userElement.querySelector(
+                        ".status-text"
+                    );
+
+                if (!dot || !text)
+                    return;
+
+
+                if (isOnline) {
+
+                    dot.classList.remove(
+                        "offline"
+                    );
+
+                    dot.classList.add(
+                        "online"
+                    );
+
+                    text.classList.remove(
+                        "offline"
+                    );
+
+                    text.classList.add(
+                        "online"
+                    );
+
+                    text.textContent =
+                        "Online";
+
+                }
+                else {
+
+                    dot.classList.remove(
+                        "online"
+                    );
+
+                    dot.classList.add(
+                        "offline"
+                    );
+
+                    text.classList.remove(
+                        "online"
+                    );
+
+                    text.classList.add(
+                        "offline"
+                    );
+
+                    text.textContent =
+                        "Offline";
+                }
+            }
+        );
+           
+    }
+
+
+    connection.on(
+        "UserOnline",
+        username => {
+
+            console.log(
+                "UserOnline:",
+                username
+            );
+
+            setUserOnline(
+                username,
+                true
+            );
+        }
+    );
+
+
+    connection.on(
+        "UserOffline",
+        username => {
+
+            console.log(
+                "UserOffline:",
+                username
+            );
+
+            setUserOnline(
+                username,
+                false
+            );
+        }
+    );
+        connection.on("OnlineUsersSnapshot", usernames => {
+        usernames.forEach(username => setUserOnline(username, true));
+    });
+
+    // =========================
+    // TYPING
+    // =========================
+
+    connection.on(
+        "UserTyping",
+        username => {
+
+            const typingIndicator =
+                document.getElementById(
+                    "typingIndicator"
+                );
+
+            if (!typingIndicator)
+                return;
+
+            if (
+                username !==
+                selectedUser
+            ) {
+                return;
+            }
+
+            typingIndicator.textContent =
+                username +
+                " đang nhập...";
+
+            typingIndicator.style.display =
+                "block";
+
+            clearTimeout(
+                window.typingTimer
+            );
+
+            window.typingTimer =
+                setTimeout(
+                    () => {
+
+                        typingIndicator.style.display =
+                            "none";
+
+                    },
+                    2000
+                );
+        }
+    );
+
+
+    // =========================
+    // NHẬN TIN NHẮN
+    // =========================
+
+    connection.on(
+        "ReceiveGroupMessage",
+        function (groupId, sender, message) {
+                updateConversationSummary(
+            "group",
+            groupId,
+            message,
+            new Date().toISOString()
+        );
+
+            if (groupId !== selectedGroup) return;
+                
+            const messages = document.getElementById("messages");
+            const div = document.createElement("div");
+            div.style.marginBottom = "10px";
+
+            const strong = document.createElement("strong");
+            strong.textContent = sender + ": ";
+
+            const text = document.createElement("span");
+            renderMessageContent(text, message);
+
+            div.appendChild(strong);
+            div.appendChild(text);
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+        }
+    );
+    connection.on(
+        "ReceiveMessage",
+        (sender, message) => {
+
+            console.log(
+                "Nhận tin:",
+                sender,
+                message
+            );
+                const previewUser =
+        sender.toLowerCase() === currentUser.toLowerCase()
+            ? selectedUser
+            : sender;
+
+    if (previewUser) {
+        updateConversationSummary(
+            "user",
+            previewUser,
+            message,
+            new Date().toISOString()
+        );
+    }
+
+            const isMe =
+                sender === currentUser;
+
+
+            // Nếu đang mở cuộc trò chuyện
+            if (
+                messages &&
+                (
+                    sender === selectedUser ||
+                    isMe
+                )
+            ) {
+
+                const welcome =
+                    messages.querySelector(
+                        ".welcome"
+                    );
+
+                if (welcome) {
+                    welcome.remove();
+                }
+
+
+                const div =
+                    document.createElement(
+                        "div"
+                    );
+
+                div.className =
+                    "message " +
+                    (
+                        isMe
+                            ? "mine"
+                            : "other"
+                    );
+                    if (!isMe) {
+    const avatar = document.createElement("div");
+    avatar.className = "chat-avatar";
+    avatar.textContent = (sender || "?").substring(0, 1).toUpperCase();
+    div.appendChild(avatar);
+}
+
+                const bubble =
+                    document.createElement(
+                        "div"
+                    );
+
+                bubble.className =
+                    "message-bubble";
+
+
+                if (!isMe) {
+
+                    const senderElement =
+                        document.createElement(
+                            "div"
+                        );
+
+                    senderElement.className =
+                        "message-sender";
+
+                    senderElement.textContent =
+                        sender;
+
+                    bubble.appendChild(
+                        senderElement
+                    );
+                }
+
+
+                const text =
+                    document.createElement(
+                        "div"
+                    );
+                    renderMessageContent(text, message);
+
+                bubble.appendChild(
+                    text
+                );
+
+
+                const time =
+                    document.createElement(
+                        "div"
+                    );
+
+                time.className =
+                    "message-time";
+
+                time.textContent =
+                    new Date()
+                        .toLocaleTimeString(
+                            "vi-VN",
+                            {
+                                hour: "2-digit",
+                                minute: "2-digit"
+                            }
+                        );
+
+                bubble.appendChild(
+                    time
+                );
+
+
+                div.appendChild(
+                    bubble
+                );
+
+                messages.appendChild(
+                    div
+                );
+
+                messages.scrollTop =
+                    messages.scrollHeight;
+            }
+
+
+            // Tin nhắn chưa đọc
+            if (
+                !isMe &&
+                sender !== selectedUser
+            ) {
+
+                const badge =
+                    document.getElementById(
+                        "unread-" + sender
+                    );
+
+                if (badge) {
+
+                    let count =
+                        parseInt(
+                            badge.textContent
+                        ) || 0;
+
+                    count++;
+
+                    badge.textContent =
+                        count;
+
+                    badge.style.display =
+                        "inline-flex";
+                }
+            }
+        }
+    );
+
+    connection.on(
+        "ReceiveMetrics",
+        function (m) {
+
+            const log =
+                document.getElementById("statsLog");
+                    if (!log) return;
+
+            if (log.querySelector(".empty")) {
+                log.innerHTML = "";
+            }
+
+            const entry =
+                document.createElement("div");
+
+            entry.className = "stats-entry";
+
+            const sigText = m.signatureValid === null
+                ? ""
+                : (m.signatureValid
+                    ? '<span class="ok">✔ chữ ký hợp lệ</span>'
+                    : '<span class="bad">✘ chữ ký SAI</span>');
+
+            const shaText = m.sha256Match === null
+                ? ""
+                : (m.sha256Match
+                    ? '<span class="ok">✔ SHA-256 khớp</span>'
+                    : '<span class="bad">✘ SHA-256 lệch</span>');
+
+            entry.innerHTML =
+                "Mã hóa: " + m.encryptMs.toFixed(3) + " ms" +
+                (m.decryptMs !== null && m.decryptMs !== undefined
+                    ? " | Giải mã: " + m.decryptMs.toFixed(3) + " ms"
+                    : "") +
+                "<br>Gốc: " + m.plaintextBytes + " B → Mã hóa: " + m.ciphertextBytes + " B" +
+                " (x" + m.overhead.toFixed(2) + ")" +
+                ((sigText || shaText) ? "<br>" + sigText + " " + shaText : "");
+
+            log.prepend(entry);
+        }
+    );
+
+
+    // =========================
+    // KẾT NỐI SIGNALR
+    // =========================
+
+    async function startConnection() {
+
+        try {
+
+            if (
+                connection.state ===
+                "Connected"
+            ) {
+                return;
+            }
+
+
+            await connection.start();
+
+
+            console.log(
+                "SignalR đã kết nối."
+            );
+
+
+            const onlineUsers =
+                await connection.invoke(
+                    "GetOnlineUsers"
+                );
+
+
+            console.log(
+                "Danh sách online:",
+                onlineUsers
+            );
+
+
+            onlineUsers.forEach(
+                username => {
+
+                    setUserOnline(
+                        username,
+                        true
+                    );
+                }
+                );
+                if (selectedGroup) {
+        await connection.invoke("LoadGroupHistory", selectedGroup);
+    } else if (selectedUser) {
+        await connection.invoke("LoadHistory", selectedUser);
+    }
+
+    await connection.invoke("LoadConversationSummaries");
+
+        }
+        catch (err) {
+
+            console.error(
+                "SignalR lỗi:",
+                err
+            );
+
+            setTimeout(
+                startConnection,
+                3000
+            );
+        }
+    }
+
+
+    // =========================
+    // XÓA BADGE KHI MỞ CHAT
+    // =========================
+
+    if (selectedUser) {
+
+        const badge =
+            document.getElementById(
+                "unread-" + selectedUser
+            );
+
+        if (badge) {
+
+            badge.textContent =
+                "0";
+
+            badge.style.display =
+                "none";
+        }
+    }
+
+
+    // =========================
+    // GỬI TIN NHẮN
+    // =========================
+
+    if (sendButton) {
+
+        sendButton.addEventListener(
+            "click",
+            async function () {
+
+                const message =
+                    messageInput.value.trim();
+
+
+                if (!message)
+                    return;
+
+
+                if (!selectedUser && !selectedGroup)
+                 return;
+
+
+                if (
+                    connection.state !==
+                    "Connected"
+                ) {
+
+                    console.error(
+                        "SignalR chưa kết nối."
+                    );
+
+                    return;
+                }
+
+
+                try {
+
+                                        if (selectedGroup) {
+        await connection.invoke("SendGroupMessage", selectedGroup, message);
+    } else {
+        await connection.invoke("SendMessage", selectedUser, message);
+    }
+
+        showChatToast("Đã gửi tin nhắn.");
+                    messageInput.value =
+                        "";
+
+                    messageInput.focus();
+
+                }
+                catch (err) {
+                        showChatToast("Gửi tin nhắn thất bại.", true);
+                    console.error(
+                        "Không gửi được tin nhắn:",
+                        err
+                    );
+                }
+            }
+        );
+    }
+    const imageInput = document.getElementById("imageInput");
+
+if (imageInput) {
+    imageInput.addEventListener("change", event => {
+        const picker = event.currentTarget;
+        const file = picker.files?.[0];
+
+        if (!file) return;
+
+        const allowedTypes = [
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+        ];
+
+        if (!allowedTypes.includes(file.type)) {
+            alert("Chỉ hỗ trợ ảnh PNG, JPEG hoặc WebP.");
+            picker.value = "";
+            return;
+        }
+
+        if (file.size > 1024 * 1024) {
+            alert("Ảnh phải nhỏ hơn hoặc bằng 1 MB.");
+            picker.value = "";
+            return;
+        }
+
+        if (!selectedUser && !selectedGroup) {
+            alert("Hãy chọn người dùng hoặc nhóm chat trước.");
+            picker.value = "";
+            return;
+        }
+
+        if (connection.state !== "Connected") {
+            alert("SignalR chưa kết nối.");
+            picker.value = "";
+            return;
+        }
+
+        const reader = new FileReader();
+
+        reader.onload = async () => {
+            try {
+                const payload = JSON.stringify({
+                    type: "image",
+                    mimeType: file.type,
+                    data: reader.result
+                });
+
+                if (selectedGroup) {
+                    await connection.invoke(
+                        "SendGroupMessage",
+                        selectedGroup,
+                        payload
+                    );
+                } else {
+                    await connection.invoke(
+                        "SendMessage",
+                        selectedUser,
+                        payload
+                    );
+                }
+            } catch (error) {
+                console.error("Không gửi được ảnh:", error);
+                alert("Không gửi được ảnh: " + (error.message || error));
+            } finally {
+                picker.value = "";
+            }
+        };
+
+        reader.onerror = () => {
+            alert("Trình duyệt không đọc được ảnh.");
+            picker.value = "";
+        };
+
+        reader.readAsDataURL(file);
+    });
+}
+
+    // =========================
+    // ENTER ĐỂ GỬI
+    // =========================
+
+    if (messageInput) {
+
+        messageInput.addEventListener(
+            "keydown",
+            function (event) {
+
+                if (
+                    event.key === "Enter" &&
+                    !event.shiftKey
+                ) {
+
+                    event.preventDefault();
+
+                    if (sendButton) {
+                        sendButton.click();
+                    }
+                }
+            }
+        );
+    }
+
+
+    // =========================
+    // ĐANG NHẬP
+    // =========================
+
+    if (messageInput) {
+
+        messageInput.addEventListener(
+            "input",
+            async function () {
+
+                if (!selectedUser)
+                    return;
+
+
+                if (
+                    connection.state !==
+                    "Connected"
+                ) {
+                    return;
+                }
+
+
+                try {
+
+                    await connection.invoke(
+                        "Typing",
+                        selectedUser
+                    );
+
+                }
+                catch (err) {
+
+                    console.error(
+                        "Typing lỗi:",
+                        err
+                    );
+                }
+            }
+        );
+    }
+
+
+    // =========================
+    // START
+    // =========================
+
+       startConnection();
+
+</script>
+<script>
+    const mobileMenuButton =
+        document.getElementById("mobileSidebarToggle");
+
+    const chatContainer =
+        document.querySelector(".chat-container");
+
+    if (mobileMenuButton && chatContainer) {
+        mobileMenuButton.addEventListener("click", function () {
+            const chatIsOpen =
+                chatContainer.classList.contains("chat-open");
+
+            chatContainer.classList.toggle("chat-open", !chatIsOpen);
+
+            mobileMenuButton.textContent = chatIsOpen
+                ? "☰ Danh sách chat"
+                : "✖ Đóng danh sách";
+        });
+    }
+</script>
+<script>
+    let activeChatFilter = "all";
+
+    function filterChatList() {
+        const searchBox = document.getElementById("chatSearch");
+        const keyword = (searchBox?.value || "").trim().toLocaleLowerCase();
+
+        document.querySelectorAll("[data-chat-item]").forEach(function (item) {
+            const name = (item.dataset.chatName || "").toLocaleLowerCase();
+            const type = item.dataset.chatType || "";
+            const matchesSearch = name.includes(keyword);
+            const matchesFilter =
+                activeChatFilter === "all" || type === activeChatFilter;
+
+            item.hidden = !(matchesSearch && matchesFilter);
+        });
+    }
+
+    document.getElementById("chatSearch")
+        ?.addEventListener("input", filterChatList);
+
+    document.querySelectorAll("[data-chat-filter]").forEach(function (button) {
+        button.addEventListener("click", function () {
+            activeChatFilter = this.dataset.chatFilter;
+
+            document.querySelectorAll("[data-chat-filter]").forEach(function (tab) {
+                tab.classList.toggle("active", tab === button);
+            });
+
+            filterChatList();
+        });
+    });
+</script>
+<script>
+    const friendSearch = document.getElementById("friendSearch");
+
+    friendSearch?.addEventListener("input", function () {
+        const keyword = this.value.trim().toLocaleLowerCase();
+
+        document.querySelectorAll(".friend-candidate").forEach(function (item) {
+            const name = (item.dataset.friendName || "").toLocaleLowerCase();
+            item.hidden = !name.includes(keyword);
+        });
+    });
+</script>

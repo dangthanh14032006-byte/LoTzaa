@@ -1,0 +1,206 @@
+﻿@model SecureChat.Web.Controllers.FriendsViewModel
+@{
+    ViewData["Title"] = "Bạn bè";
+}
+
+<style>
+    .friends-page { max-width: 900px; margin: 24px auto; padding: 22px; background: #fff; border-radius: 12px; box-shadow: 0 3px 14px #0001; }
+    .friends-section { margin: 22px 0; }
+    .friend-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; margin: 8px 0; border-radius: 8px; background: #f4f6f9; }
+    .friend-row form { margin: 0; }
+    .friends-button { display: inline-block; padding: 8px 12px; border: 0; border-radius: 7px; background: #1677ff; color: white; text-decoration: none; cursor: pointer; }
+    .friends-note { padding: 10px; border-radius: 8px; background: #eef3ff; }
+    .friend-search {
+    box-sizing: border-box;
+    width: 100%;
+    margin: 6px 0 12px;
+    padding: 11px 14px;
+    border: 1px solid #cfd8e3;
+    border-radius: 10px;
+    font-size: 15px;
+}
+
+.friend-candidate[hidden] {
+    display: none !important;
+}
+.friends-page {
+    max-width: 960px;
+    margin: 32px auto;
+    padding: 28px;
+    border: 1px solid #e5eaf2;
+    border-radius: 20px;
+    background: linear-gradient(145deg, #ffffff, #f7f9ff);
+    box-shadow: 0 12px 35px rgb(31 52 91 / 10%);
+}
+
+.friends-page h1 {
+    margin: 0;
+    color: #172554;
+    font-size: 28px;
+}
+
+.friends-page > p a {
+    color: #2563eb;
+    text-decoration: none;
+}
+
+.friends-page > p a:hover {
+    text-decoration: underline;
+}
+
+.friends-section {
+    margin: 22px 0;
+    padding: 20px;
+    border: 1px solid #e8edf5;
+    border-radius: 16px;
+    background: #f8faff;
+}
+
+.friends-section h2 {
+    margin: 0 0 14px;
+    color: #263653;
+    font-size: 19px;
+}
+
+.friend-row {
+    border: 1px solid #e8edf5;
+    background: #fff;
+    transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.friend-row:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgb(31 52 91 / 9%);
+}
+
+.friend-search {
+    outline: none;
+    transition: border-color .18s ease, box-shadow .18s ease;
+}
+
+.friend-search:focus {
+    border-color: #4f7df3;
+    box-shadow: 0 0 0 3px rgb(79 125 243 / 13%);
+}
+
+.friends-button {
+    transition: background .18s ease, transform .18s ease;
+}
+
+.friends-button:hover {
+    background: #0f63dc;
+    transform: translateY(-1px);
+}
+
+@@media (max-width: 650px) {
+    .friends-page {
+        margin: 12px;
+        padding: 18px;
+    }
+
+    .friends-section {
+        padding: 14px;
+    }
+
+    .friend-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+</style>
+
+<div class="friends-page">
+    <h1>👥 Bạn bè</h1>
+    <p><a href="/Chat/Index">← Quay lại chat</a></p>
+
+    @if (TempData["FriendMessage"] is string message)
+    {
+        <p class="friends-note">@message</p>
+    }
+
+    <section class="friends-section">
+    <h2>Thêm bạn</h2>
+
+    <input id="friendSearch"
+           class="friend-search"
+           type="search"
+           placeholder="Tìm tài khoản để kết bạn..."
+           autocomplete="off" />
+
+    @if (Model.Candidates.Count == 0)
+    {
+        <p>Không còn tài khoản nào để gửi lời mời.</p>
+    }
+    else
+    {
+        foreach (var username in Model.Candidates)
+        {
+            <div class="friend-row friend-candidate"
+                 data-friend-name="@username">
+                <span>👤 @username</span>
+
+                <form method="post" action="/Friends/Request">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="username" value="@username" />
+                    <button class="friends-button" type="submit">
+                        Gửi lời mời
+                    </button>
+                </form>
+            </div>
+        }
+    }
+</section>
+
+    <section class="friends-section">
+        <h2>Bạn bè của tôi</h2>
+        @if (Model.Friends.Count == 0)
+        {
+            <p>Bạn chưa có bạn bè nào. Gửi lời mời bên dưới.</p>
+        }
+        else
+        {
+            foreach (var username in Model.Friends)
+            {
+                <div class="friend-row">
+                    <span>👤 @username</span>
+                    <a class="friends-button"
+                       href="/Chat/Index?user=@Uri.EscapeDataString(username)">Mở chat</a>
+                </div>
+            }
+        }
+    </section>
+
+    <section class="friends-section">
+        <h2>Thêm bạn</h2>
+        @if (Model.Candidates.Count == 0)
+        {
+            <p>Không còn tài khoản nào để gửi lời mời.</p>
+        }
+        else
+        {
+            foreach (var username in Model.Candidates)
+            {
+                <div class="friend-row">
+                    <span>👤 @username</span>
+                    <form method="post" action="/Friends/Request">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="username" value="@username" />
+                        <button class="friends-button" type="submit">Gửi lời mời</button>
+                    </form>
+                </div>
+            }
+        }
+    </section>
+</div>
+<script>
+    const friendSearch = document.getElementById("friendSearch");
+
+    friendSearch?.addEventListener("input", function () {
+        const keyword = this.value.trim().toLocaleLowerCase();
+
+        document.querySelectorAll(".friend-candidate").forEach(function (row) {
+            const username = (row.dataset.friendName || "").toLocaleLowerCase();
+            row.hidden = !username.includes(keyword);
+        });
+    });
+</script>

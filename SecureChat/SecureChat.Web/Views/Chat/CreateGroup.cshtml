@@ -1,0 +1,43 @@
+﻿@{
+    ViewData["Title"] = "Tạo nhóm";
+    var users = ViewBag.Users as List<string> ?? new List<string>();
+}
+<div class="create-group-page">
+    <section class="create-group-card">
+<div class="login-container">
+    <div class="login-box">
+        <h1>👥 Tạo nhóm chat</h1>
+
+        @if (ViewBag.Error != null)
+        {
+            <div class="error-message">@ViewBag.Error</div>
+        }
+
+        <form method="post">
+            <div class="form-group">
+                <label>Tên nhóm</label>
+                <input type="text" name="groupName" placeholder="Nhập tên nhóm..." required />
+            </div>
+
+            <div class="form-group">
+                <label>Chọn thành viên</label>
+                @foreach (var u in users)
+                {
+                    <div>
+                        <label>
+                            <input type="checkbox" name="members" value="@u" /> @u
+                        </label>
+                    </div>
+                }
+            </div>
+
+            <button class="login-button" type="submit">Tạo nhóm</button>
+        </form>
+
+        <p class="register-text">
+            <a href="/Chat/Index">Quay lại</a>
+        </p>
+    </div>
+</div>
+    </section>
+</div>

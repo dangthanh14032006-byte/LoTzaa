@@ -1,0 +1,6 @@
+bin/
+obj/
+server-data/
+client-keys/
+*.user
+.vs/

@@ -1,0 +1,153 @@
+﻿@model SecureChat.Web.Models.ProfileEditViewModel
+@{
+    ViewData["Title"] = "Chỉnh sửa hồ sơ";
+}
+
+<style>
+    .profile-edit { max-width: 650px; margin: 30px auto; padding: 26px; background: #fff; border-radius: 14px; box-shadow: 0 4px 18px #0001; }
+    .profile-field { margin: 16px 0; }
+    .profile-field label { display: block; margin-bottom: 6px; font-weight: 600; }
+    .profile-field input[type="text"], .profile-field textarea { box-sizing: border-box; width: 100%; padding: 10px; border: 1px solid #cfd4dc; border-radius: 8px; }
+    .profile-field textarea { min-height: 110px; resize: vertical; }
+    .profile-avatar-preview { display: block; width: 120px; height: 120px; margin: 10px 0; object-fit: cover; border-radius: 50%; }
+    .profile-save { padding: 10px 16px; border: 0; border-radius: 8px; background: #1677ff; color: #fff; cursor: pointer; }
+    .field-error { color: #c62828; }
+    .profile-edit {
+    border: 1px solid #e3eaf5;
+    background: rgb(255 255 255 / 94%);
+    backdrop-filter: blur(12px);
+}
+
+.profile-edit h1 {
+    margin-top: 0;
+    color: #172554;
+    font-size: 28px;
+}
+
+.profile-field label {
+    color: #334155;
+}
+
+.profile-field input[type="text"],
+.profile-field textarea {
+    transition: border-color .18s ease, box-shadow .18s ease;
+}
+
+.profile-field input[type="text"]:focus,
+.profile-field textarea:focus {
+    outline: none;
+    border-color: #4f7df3;
+    box-shadow: 0 0 0 3px rgb(79 125 243 / 13%);
+}
+
+.profile-avatar-preview {
+    border: 4px solid #eaf1ff;
+    box-shadow: 0 5px 16px rgb(31 52 91 / 15%);
+}
+
+.profile-save {
+    transition: background .18s ease, transform .18s ease;
+}
+
+.profile-save:hover {
+    background: #0f63dc;
+    transform: translateY(-1px);
+}
+
+.profile-edit a {
+    color: #2563eb;
+    text-decoration: none;
+}
+
+.profile-edit a:hover {
+    text-decoration: underline;
+}
+
+@@media (max-width: 700px) {
+    .profile-edit {
+        margin: 16px;
+        padding: 20px;
+    }
+
+    .profile-edit h1 {
+        font-size: 23px;
+    }
+}
+.profile-field select {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #cfd4dc;
+    border-radius: 8px;
+    background: white;
+}
+</style>
+
+<div class="profile-edit">
+    <h1>Chỉnh sửa hồ sơ</h1>
+
+    <form asp-controller="Profile"
+          asp-action="Edit"
+          method="post"
+          enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+
+        <div asp-validation-summary="All" class="field-error"></div>
+
+        <div class="profile-field">
+    <label asp-for="PhoneNumber">Số điện thoại</label>
+    <input asp-for="PhoneNumber" type="tel" autocomplete="tel" />
+    <span asp-validation-for="PhoneNumber" class="field-error"></span>
+</div>
+
+<div class="profile-field">
+    <label asp-for="Email">Email / Gmail</label>
+    <input asp-for="Email" type="email" autocomplete="email" />
+    <span asp-validation-for="Email" class="field-error"></span>
+</div>
+
+<div class="profile-field">
+    <label asp-for="DateOfBirth">Ngày sinh</label>
+    <input asp-for="DateOfBirth" type="date" />
+    <span asp-validation-for="DateOfBirth" class="field-error"></span>
+</div>
+
+        <div class="profile-field">
+            <label asp-for="Bio">Giới thiệu</label>
+            <textarea asp-for="Bio" maxlength="300"></textarea>
+            <span asp-validation-for="Bio" class="field-error"></span>
+        </div>
+        <div class="profile-field">
+            <label asp-for="DisplayName">Tên hiển thị</label>
+            <input asp-for="DisplayName" type="text" />
+            <span asp-validation-for="DisplayName" class="field-error"></span>
+        </div>
+        <h2>Cài đặt</h2>
+
+<div class="profile-field">
+    <label asp-for="Language">Ngôn ngữ</label>
+    <select asp-for="Language">
+        <option value="vi">Tiếng Việt</option>
+        <option value="en">English</option>
+    </select>
+    <span asp-validation-for="Language" class="field-error"></span>
+</div>
+
+        <div class="profile-field">
+            <label asp-for="Avatar">Ảnh đại diện (JPEG, PNG hoặc WebP; tối đa 2 MB)</label>
+            <input asp-for="Avatar" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
+            <span asp-validation-for="Avatar" class="field-error"></span>
+            @if (!string.IsNullOrWhiteSpace(Model.AvatarUrl))
+            {
+                <img class="profile-avatar-preview" src="@Model.AvatarUrl" alt="Ảnh đại diện hiện tại" />
+            }
+        </div>
+
+        <button class="profile-save" type="submit">Lưu hồ sơ</button>
+        <a href="/Chat/Index" style="margin-left:10px">Quay lại chat</a>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

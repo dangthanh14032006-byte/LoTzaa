@@ -1,0 +1,170 @@
+﻿@{
+    var isChatLayout = ViewData["IsChatLayout"] is true;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - hihihi</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/hihihi.styles.css" asp-append-version="true" />
+</head>
+<body class="@(isChatLayout ? "chat-layout" : "")">
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <div class="container-fluid">
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">hihihi</a>
+                            <label for="siteBackgroundFile" class="btn btn-sm btn-outline-primary ms-2">
+                Chọn ảnh nền
+            </label>
+
+            <input id="siteBackgroundFile"
+                   type="file"
+                   accept="image/*"
+                   style="display:none" />
+
+            <button id="clearSiteBackground"
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary ms-2">
+                Xóa ảnh nền
+            </button>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Chat" asp-action="Index">
+                                💬 Trò chuyện
+                            </a>
+                        </li>
+                    </ul>
+                    <div class="account-area">
+                        <button id="themeToggle" type="button" class="theme-toggle">
+                        🌙 Tối
+                    </button>
+                    <a class="account-profile"
+                       asp-controller="Profile"
+                       asp-action="Edit">
+                        <span class="nav-avatar">
+                            @((User.Identity?.Name ?? "?").Substring(0, 1).ToUpperInvariant())
+                        </span>
+                        <span>@User.Identity?.Name</span>
+                    </a>
+
+                    <a class="account-logout" href="/Account/Logout">
+                        Đăng xuất
+                    </a>
+                </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2026 - hihihi - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+        </div>
+    </footer>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+    const themeButton = document.getElementById("themeToggle");
+    const savedTheme = localStorage.getItem("securechat-theme");
+
+    function setDarkMode(isDark) {
+        document.body.classList.toggle("dark-mode", isDark);
+        themeButton.textContent = isDark ? "☀️ Sáng" : "🌙 Tối";
+        localStorage.setItem("securechat-theme", isDark ? "dark" : "light");
+    }
+
+    if (themeButton) {
+        setDarkMode(savedTheme === "dark");
+
+        themeButton.addEventListener("click", function () {
+            const darkModeIsActive =
+                document.body.classList.contains("dark-mode");
+
+            setDarkMode(!darkModeIsActive);
+        });
+    }
+        </script>
+            @await RenderSectionAsync("Scripts", required: false)
+            <script>
+        (() => {
+            const storageKey = "securechat.siteBackground";
+            const picker = document.getElementById("siteBackgroundFile");
+            const clearButton = document.getElementById("clearSiteBackground");
+
+            function applyBackground(imageData) {
+                document.body.style.backgroundImage = imageData
+                    ? `url("${imageData}")`
+                    : "";
+
+        document.body.style.backgroundSize = "cover";
+        document.body.style.backgroundPosition = "center";
+        document.body.style.backgroundRepeat = "no-repeat";
+        document.body.style.backgroundAttachment = "fixed";
+    }
+
+    // Hiện lại ảnh đã chọn khi mở hoặc tải lại trang
+    try {
+        applyBackground(localStorage.getItem(storageKey));
+    } catch {
+        applyBackground("");
+    }
+
+    picker.addEventListener("change", function () {
+        const file = this.files && this.files[0];
+        if (!file) return;
+
+        if (!file.type.startsWith("image/")) {
+            alert("Bạn hãy chọn một tệp hình ảnh.");
+            this.value = "";
+            return;
+        }
+
+        // Giới hạn kích thước để tránh đầy bộ nhớ trình duyệt
+        if (file.size > 2 * 1024 * 1024) {
+            alert("Ảnh quá lớn. Hãy chọn ảnh dưới 2 MB.");
+            this.value = "";
+            return;
+        }
+
+        const reader = new FileReader();
+
+        reader.onload = function () {
+            try {
+                const imageData = reader.result;
+                localStorage.setItem(storageKey, imageData);
+                applyBackground(imageData);
+            } catch {
+                alert("Không lưu được ảnh. Hãy thử một ảnh nhỏ hơn.");
+            }
+        };
+
+        reader.onerror = function () {
+            alert("Không đọc được tệp ảnh.");
+        };
+
+        reader.readAsDataURL(file);
+    });
+
+    clearButton.addEventListener("click", function () {
+        localStorage.removeItem(storageKey);
+        applyBackground("");
+        picker.value = "";
+    });
+})();
+</script>
+</body>
+</html>
