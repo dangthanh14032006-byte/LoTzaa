@@ -64,4 +64,17 @@ public sealed class GroupStore
                 .ToList();
         }
     }
+    public bool Delete(string groupId, string requestedBy)
+    {
+        lock (_lock)
+        {
+            if (!_groups.TryGetValue(groupId, out var g)) return false;
+            if (!g.CreatedBy.Equals(requestedBy, StringComparison.OrdinalIgnoreCase))
+                return false; // chỉ người tạo nhóm mới được xóa
+
+            _groups.Remove(groupId);
+            Persist();
+            return true;
+        }
+    }
 }

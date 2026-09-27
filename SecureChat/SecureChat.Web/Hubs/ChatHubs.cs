@@ -478,7 +478,7 @@ public class ChatHub : Hub
             return;
 
         // Tóm tắt các cuộc trò chuyện riêng
-        foreach (var username in _users.AllUsernames())
+        foreach (var username in _friendStore.FriendsOf(me))
         {
             if (username.Equals(me, StringComparison.OrdinalIgnoreCase))
                 continue;

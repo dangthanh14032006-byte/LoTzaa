@@ -13,6 +13,7 @@ public sealed class EncryptedMessageStore
 {
     private readonly string _path;
     private readonly object _lock = new();
+    private readonly List<StoredMessage> _cache;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -23,9 +24,10 @@ public sealed class EncryptedMessageStore
     public EncryptedMessageStore(string path)
     {
         _path = path;
+        _cache = LoadFromDisk();
     }
 
-    private List<StoredMessage> Load()
+    private List<StoredMessage> LoadFromDisk()
     {
         if (!File.Exists(_path))
             return new();
@@ -52,29 +54,31 @@ public sealed class EncryptedMessageStore
         }
     }
 
+    private void Persist(List<StoredMessage> list)
+    {
+        var directory =
+            Path.GetDirectoryName(
+                Path.GetFullPath(_path)
+            );
+
+        if (!string.IsNullOrWhiteSpace(directory))
+            Directory.CreateDirectory(directory);
+
+        File.WriteAllText(
+            _path,
+            JsonSerializer.Serialize(
+                list,
+                JsonOptions
+            )
+        );
+    }
+
     public void Add(StoredMessage msg)
     {
         lock (_lock)
         {
-            var list = Load();
-
-            list.Add(msg);
-
-            var directory =
-                Path.GetDirectoryName(
-                    Path.GetFullPath(_path)
-                );
-
-            if (!string.IsNullOrWhiteSpace(directory))
-                Directory.CreateDirectory(directory);
-
-            File.WriteAllText(
-                _path,
-                JsonSerializer.Serialize(
-                    list,
-                    JsonOptions
-                )
-            );
+            _cache.Add(msg);
+            Persist(_cache);
         }
     }
 
@@ -84,36 +88,29 @@ public sealed class EncryptedMessageStore
     {
         lock (_lock)
         {
-            return Load()
+            return _cache
                 .Where(m =>
                     (
                         m.ForReceiver.SenderId.Equals(
                             user1,
                             StringComparison.OrdinalIgnoreCase)
-
                         &&
-
                         m.ForReceiver.ReceiverId.Equals(
                             user2,
                             StringComparison.OrdinalIgnoreCase)
                     )
-
                     ||
-
                     (
                         m.ForReceiver.SenderId.Equals(
                             user2,
                             StringComparison.OrdinalIgnoreCase)
-
                         &&
-
                         m.ForReceiver.ReceiverId.Equals(
                             user1,
                             StringComparison.OrdinalIgnoreCase)
                     )
                 )
-                .OrderBy(
-                    m => m.ForReceiver.Timestamp)
+                .OrderBy(m => m.ForReceiver.Timestamp)
                 .ToList();
         }
     }

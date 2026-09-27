@@ -80,4 +80,16 @@ public sealed class FriendsController : Controller
 
         return RedirectToAction(nameof(Index));
     }
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult Remove(string username)
+    {
+        var me = User.Identity?.Name ?? "";
+
+        TempData["FriendMessage"] = _friends.RemoveFriend(me, username)
+            ? $"Đã xóa {username} khỏi danh sách bạn bè."
+            : "Không thể xóa bạn.";
+
+        return RedirectToAction(nameof(Index));
+    }
 }

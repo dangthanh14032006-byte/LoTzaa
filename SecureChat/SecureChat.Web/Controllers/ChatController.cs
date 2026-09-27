@@ -97,4 +97,12 @@ public class ChatController : Controller
         var group = _groupStore.Create(groupName, currentUser, members);
         return RedirectToAction("Index", new { group = group.Id });
     }
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult DeleteGroup(string groupId)
+    {
+        var me = User.Identity?.Name ?? "";
+        _groupStore.Delete(groupId, me);
+        return RedirectToAction("Index");
+    }
 }

@@ -240,13 +240,23 @@
         gap: 10px;
     }
 
-    .message-input input {
-        flex: 1;
-        padding: 12px;
-        border: 1px solid #ccc;
-        border-radius: 8px;
-        font-size: 15px;
-    }
+    .message-input #messageInput {
+    flex: 1;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 15px;
+}
+
+.message-input #imageInput {
+    flex: 0 0 auto;
+    max-width: 90px; /* hoặc ẩn input thật, thay bằng <label> icon 📎 */
+}
+
+.message-input button {
+    flex: 0 0 auto;
+}
 
     .message-input button {
         padding: 12px 20px;
@@ -566,6 +576,14 @@
                 @if (selectedGroup != null)
                 {
                     <text>👥 Nhóm: <strong>@selectedGroup.Name</strong></text>
+                                @if (selectedGroup.CreatedBy.Equals(currentUser, StringComparison.OrdinalIgnoreCase))
+            {
+                <form method="post" action="/Chat/DeleteGroup" onsubmit="return confirm('Xóa nhóm này?');" style="display:inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="groupId" value="@selectedGroup.Id" />
+                    <button type="submit" class="bg-picker-btn">🗑️ Xóa nhóm</button>
+                </form>
+            }
                 }
                 else
                 {

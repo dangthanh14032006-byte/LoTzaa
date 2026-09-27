@@ -157,4 +157,19 @@ public sealed class FriendStore
                 .ToList();
         }
     }
+    public bool RemoveFriend(string userA, string userB)
+    {
+        lock (_lock)
+        {
+            var records = Load();
+            var record = records.FirstOrDefault(r =>
+                Same(r.Status, "Accepted") && Between(r, userA, userB));
+
+            if (record == null) return false;
+
+            records.Remove(record);
+            Persist(records);
+            return true;
+        }
+    }
 }

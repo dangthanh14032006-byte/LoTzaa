@@ -117,40 +117,28 @@
     {
         <p class="friends-note">@message</p>
     }
-
     <section class="friends-section">
-    <h2>Thêm bạn</h2>
-
-    <input id="friendSearch"
-           class="friend-search"
-           type="search"
-           placeholder="Tìm tài khoản để kết bạn..."
-           autocomplete="off" />
-
-    @if (Model.Candidates.Count == 0)
-    {
-        <p>Không còn tài khoản nào để gửi lời mời.</p>
-    }
-    else
-    {
-        foreach (var username in Model.Candidates)
+        <h2>Lời mời kết bạn</h2>
+        @if (Model.IncomingRequests.Count == 0)
         {
-            <div class="friend-row friend-candidate"
-                 data-friend-name="@username">
-                <span>👤 @username</span>
-
-                <form method="post" action="/Friends/Request">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="username" value="@username" />
-                    <button class="friends-button" type="submit">
-                        Gửi lời mời
-                    </button>
-                </form>
-            </div>
+            <p>Không có lời mời nào.</p>
         }
-    }
-</section>
-
+        else
+        {
+            foreach (var username in Model.IncomingRequests)
+            {
+                <div class="friend-row">
+                    <span>👤 @username</span>
+                    <form method="post" action="/Friends/Accept">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="username" value="@username" />
+                        <button class="friends-button" type="submit">Chấp nhận</button>
+                    </form>
+                </div>
+            }
+        }
+    </section>
+   
     <section class="friends-section">
         <h2>Bạn bè của tôi</h2>
         @if (Model.Friends.Count == 0)
@@ -165,6 +153,12 @@
                     <span>👤 @username</span>
                     <a class="friends-button"
                        href="/Chat/Index?user=@Uri.EscapeDataString(username)">Mở chat</a>
+                    <form method="post" action="/Friends/Remove"
+                          onsubmit="return confirm('Xóa bạn này?');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="username" value="@username" />
+                        <button class="friends-button" type="submit" style="background:#dc2626;">Xóa bạn</button>
+                    </form>
                 </div>
             }
         }
